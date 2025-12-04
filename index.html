@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Genchy AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-deep: #020617;
+            --bg-surface: rgba(30, 41, 59, 0.4); /* Glass effect */
+            --border-col: rgba(255, 255, 255, 0.1);
+            --accent: #6366f1; /* Indigo/Purple modern accent */
+            --accent-glow: rgba(99, 102, 241, 0.4);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --danger: #f43f5e;
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-deep);
+            background-image: radial-gradient(circle at top right, #1e1b4b 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, #1e1b4b 0%, transparent 40%);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden; /* Desktop default */
+            font-size: 14px;
+        }
+
+        /* --- LAYOUT STRUCTURE --- */
+        .app-container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* SIDEBAR (Controls) */
+        .sidebar {
+            width: 400px;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--border-col);
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        /* MAIN CONTENT (Gallery) */
+        .main-content {
+            flex: 1;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* --- BRANDING & LOGO --- */
+        .brand {
+            font-size: 20px; font-weight: 700; letter-spacing: -0.5px;
+            background: linear-gradient(to right, #fff, #94a3b8);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 15px; display: flex; align-items: center; gap: 12px;
+        }
+
+        .brand-logo {
+            height: 40px; /* Default Desktop Size */
+            width: auto;
+            max-width: 120px; /* Prevents extremely wide logos from breaking layout */
+            object-fit: contain;
+            transition: all 0.3s ease;
+        }
+        
+        h3 { 
+            margin: 0 0 10px 0; font-weight: 600; font-size: 12px; 
+            text-transform: uppercase; color: var(--accent); letter-spacing: 0.5px; 
+        }
+
+        .panel {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-col);
+            border-radius: var(--radius);
+            padding: 15px;
+            transition: 0.2s;
+        }
+        .panel:focus-within { border-color: var(--accent); }
+
+        label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+        
+        input, textarea, select {
+            width: 100%; 
+            background: rgba(0, 0, 0, 0.3); 
+            border: 1px solid var(--border-col);
+            color: white; padding: 12px; border-radius: 8px; 
+            font-family: 'Inter', sans-serif; font-size: 14px;
+            transition: 0.2s;
+        }
+        input:focus, textarea:focus, select:focus { 
+            border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px var(--accent-glow); 
+        }
+        textarea { resize: vertical; min-height: 80px; }
+
+        /* UPLOAD ZONES */
+        .upload-group { display: flex; flex-direction: column; gap: 8px; }
+        
+        .upload-zone {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-col);
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: space-between;
+            transition: all 0.2s;
+        }
+        .upload-zone:active { transform: scale(0.98); }
+        .upload-zone:hover { background: rgba(255,255,255,0.05); border-color: var(--accent); }
+        
+        .upload-info { flex: 1; overflow: hidden; }
+        .upload-label { font-size: 12px; font-weight: 600; color: #e2e8f0; }
+        .upload-status { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .thumb-mini { 
+            width: 36px; height: 36px; object-fit: cover; border-radius: 6px; 
+            display: none; border: 1px solid var(--border-col); margin-left: 10px;
+        }
+
+        .remove-btn {
+            width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.1);
+            color: var(--danger); display: none; align-items: center; justify-content: center;
+            font-weight: bold; margin-left: 8px; font-size: 14px; transition: 0.2s;
+        }
+        .remove-btn:hover { background: var(--danger); color: white; }
+
+        /* ACTION BUTTON */
+        button.primary-btn {
+            background: linear-gradient(135deg, var(--accent), #4f46e5); 
+            color: white; border: none; padding: 16px; width: 100%; border-radius: 12px; 
+            font-weight: 600; font-size: 15px; cursor: pointer; letter-spacing: 0.5px;
+            box-shadow: 0 4px 20px var(--accent-glow); transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        button.primary-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 25px var(--accent-glow); }
+        button.primary-btn:active { transform: translateY(0); }
+        button.primary-btn:disabled { background: #334155; opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* GALLERY & CONSOLE */
+        .console {
+            background: rgba(0,0,0,0.5); border: 1px solid var(--border-col); border-radius: var(--radius);
+            padding: 10px 15px; font-family: 'Consolas', monospace; font-size: 11px; color: #4ade80;
+            height: 100px; overflow-y: auto; margin-bottom: 20px; flex-shrink: 0;
+        }
+
+        .result-grid {
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px; 
+            overflow-y: auto; 
+            padding-bottom: 20px; 
+        }
+
+        /* CARDS */
+        .img-card {
+            background: var(--bg-surface); border: 1px solid var(--border-col); border-radius: 16px;
+            overflow: hidden; cursor: pointer; position: relative;
+            transition: transform 0.2s; aspect-ratio: 9/16;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .img-card:hover { transform: translateY(-4px); border-color: var(--accent); }
+        .img-card img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
+        
+        .img-overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            opacity: 0; transition: 0.2s; display: flex; align-items: flex-end; justify-content: center;
+            padding-bottom: 20px;
+        }
+        .img-card:hover .img-overlay { opacity: 1; }
+        .view-btn { 
+            background: white; color: black; padding: 8px 16px; border-radius: 20px; 
+            font-size: 12px; font-weight: bold; 
+        }
+
+        /* LOADING SPINNER */
+        .loading-card { display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); }
+        .spinner {
+            width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin-bottom: 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- MOBILE OPTIMIZATION --- */
+        @media (max-width: 768px) {
+            body { 
+                overflow: auto; 
+                height: auto;
+            }
+            .app-container {
+                flex-direction: column;
+                height: auto;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border-col);
+                padding: 20px;
+                background: transparent;
+            }
+
+            /* Responsive Logo Adjustment */
+            .brand-logo {
+                height: 64px; /* Smaller logo on mobile */
+            }
+
+            .main-content {
+                height: auto;
+                min-height: 500px;
+                padding: 20px;
+            }
+            .console { height: 80px; }
+            .result-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            
+            #generateBtn {
+                position: fixed;
+                bottom: 20px;
+                left: 20px;
+                width: calc(100% - 40px);
+                z-index: 999;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+                backdrop-filter: blur(5px);
+            }
+            
+            .sidebar::after { content: ""; display: block; height: 60px; }
+        }
+
+        /* --- MODAL --- */
+        .modal {
+            display: none; position: fixed; z-index: 2000; inset: 0;
+            background-color: rgba(0,0,0,0.95); backdrop-filter: blur(10px);
+            align-items: center; justify-content: center; flex-direction: column;
+            padding: 20px;
+        }
+        .modal-content {
+            max-width: 100%; max-height: 70vh; 
+            border-radius: 8px; box-shadow: 0 0 50px rgba(99, 102, 241, 0.2);
+        }
+        .modal-controls { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: 100%; }
+        
+        .download-btn {
+            background: #22c55e; color: #000; padding: 12px 24px; text-decoration: none; 
+            border-radius: 30px; font-weight: 600; font-size: 13px; border: none; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; transition: 0.2s; flex: 1; max-width: 200px; justify-content: center;
+        }
+        .close-btn {
+            position: absolute; top: 20px; right: 20px; width: 40px; height: 40px;
+            background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 20px; cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <aside class="sidebar">
+        <div class="brand">
+            <img src="logo.png" alt="Genchy AI Logo" class="brand-logo">
+            Genchy AI
+        </div>
+
+        <div class="panel">
+            <h3>API Key</h3>
+            <input type="password" id="apiKey" placeholder="Paste your key here (sk-...)">
+        </div>
+
+        <div class="panel">
+            <h3>Prompt</h3>
+            <textarea id="promptInput" placeholder="Describe the image transformation..."></textarea>
+        </div>
+
+        <div class="panel">
+            <h3>Format</h3>
+            <select id="aspectRatio">
+                <optgroup label="Mobile (9:16)">
+                    <option value="1080x1920" selected>1080x1920 (Instagram/TikTok)</option>
+                    <option value="1440x2560">1440x2560 (High Res Mobile)</option>
+                </optgroup>
+                <optgroup label="Landscape (16:9)">
+                    <option value="1920x1080">1920x1080 (Youtube/Desktop)</option>
+                    <option value="3840x2160">3840x2160 (4K)</option>
+                </optgroup>
+                <optgroup label="Standard">
+                    <option value="1024x1024">1024x1024 (Square)</option>
+                    <option value="1080x1350">1080x1350 (Portrait 4:5)</option>
+                </optgroup>
+            </select>
+        </div>
+
+        <div class="panel">
+            <h3>Reference Images (Max 5)</h3>
+            <div class="upload-group" id="uploadGroup">
+                </div>
+        </div>
+
+        <button id="generateBtn" class="primary-btn" onclick="startGeneration()">
+            <span>⚡ Generate Image</span>
+        </button>
+    </aside>
+
+    <main class="main-content">
+        <div class="console" id="consoleLog">> System Ready.</div>
+        <div class="result-grid" id="resultGrid"></div>
+    </main>
+</div>
+
+<div id="imageModal" class="modal">
+    <div class="close-btn" onclick="closeModal()">✕</div>
+    <img class="modal-content" id="modalImg">
+    <div id="modalMeta" style="color: #94a3b8; font-size: 11px; margin-top: 10px;"></div>
+    
+    <div class="modal-controls">
+        <button class="download-btn" onclick="downloadResized()">
+            <span>Crop Download</span>
+            <span id="lblExactSize" style="font-size: 10px; opacity: 0.7;"></span>
+        </button>
+        <button class="download-btn" style="background: white; color: black;" onclick="downloadOriginal()">
+            <span>Full AI Download</span>
+            <span id="lblFullSize" style="font-size: 10px; opacity: 0.7;"></span>
+        </button>
+    </div>
+</div>
+
+<script>
+    // --- SETUP & UTILS ---
+    
+    function initUploadZones() {
+        const container = document.getElementById('uploadGroup');
+        container.innerHTML = "";
+        for (let i = 1; i <= 5; i++) {
+            const label = i === 1 ? "Main Image" : `Reference ${i}`;
+            const html = `
+                <div class="upload-zone" onclick="triggerUpload(${i})">
+                    <div class="upload-info">
+                        <div class="upload-label">${label}</div>
+                        <div class="upload-status" id="status${i}">Tap to upload</div>
+                    </div>
+                    <img id="preview${i}" class="thumb-mini">
+                    <div id="del${i}" class="remove-btn" onclick="clearImage(${i}, event)">✕</div>
+                </div>
+                <input type="file" id="file${i}" style="display:none" accept="image/*" onchange="handleFileSelect(this, ${i})">
+            `;
+            container.innerHTML += html;
+        }
+    }
+    initUploadZones();
+
+    function log(msg) {
+        const c = document.getElementById('consoleLog');
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        c.innerHTML = `> [${time}] ${msg}<br>` + c.innerHTML;
+    }
+
+    // --- UPLOAD LOGIC ---
+
+    function triggerUpload(index) { document.getElementById(`file${index}`).click(); }
+
+    function handleFileSelect(input, index) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById(`preview${index}`).src = e.target.result;
+                document.getElementById(`preview${index}`).style.display = 'block';
+                document.getElementById(`status${index}`).innerText = input.files[0].name;
+                document.getElementById(`status${index}`).style.color = "#4ade80";
+                document.getElementById(`del${index}`).style.display = 'flex';
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function clearImage(index, event) {
+        event.stopPropagation();
+        document.getElementById(`file${index}`).value = "";
+        document.getElementById(`preview${index}`).style.display = 'none';
+        document.getElementById(`preview${index}`).src = "";
+        document.getElementById(`status${index}`).innerText = "Tap to upload";
+        document.getElementById(`status${index}`).style.color = "#94a3b8";
+        document.getElementById(`del${index}`).style.display = 'none';
+    }
+
+    // --- IMAGE PROCESSING (RESIZE) ---
+    function processAndResizeInput(file, w, h) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = "#000"; ctx.fillRect(0,0,w,h);
+                
+                // Cover logic
+                const scale = Math.max(w / img.width, h / img.height);
+                const x = (w - img.width * scale) / 2;
+                const y = (h - img.height * scale) / 2;
+                ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                
+                resolve(canvas.toDataURL('image/jpeg', 0.95));
+            };
+            img.src = URL.createObjectURL(file);
+        });
+    }
+
+    // --- API & GENERATION ---
+    
+    let currentImageUrl = "";
+    let targetWidth = 1080;
+    let targetHeight = 1920;
+
+    function createLoadingCard() {
+        const grid = document.getElementById('resultGrid');
+        const card = document.createElement('div');
+        card.className = 'img-card loading-card';
+        card.innerHTML = `<div class="spinner"></div><div style="font-size:10px; opacity:0.7">PROCESSING</div>`;
+        grid.insertBefore(card, grid.firstChild);
+        return card;
+    }
+
+    async function startGeneration() {
+        const apiKey = document.getElementById('apiKey').value;
+        const prompt = document.getElementById('promptInput').value;
+        const btn = document.getElementById('generateBtn');
+        const ratioStr = document.getElementById('aspectRatio').value;
+
+        if (!apiKey) { alert("Please enter API Key"); return; }
+        if (!prompt) { alert("Please enter a prompt"); return; }
+        if (!document.getElementById('file1').files[0]) { alert("Main Image is required"); return; }
+
+        const [wStr, hStr] = ratioStr.split('x');
+        const w = parseInt(wStr); const h = parseInt(hStr);
+
+        btn.disabled = true;
+        btn.innerHTML = `<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0"></div> Generating...`;
+        
+        const loadingCard = createLoadingCard();
+        
+        // Scroll to result on mobile
+        if(window.innerWidth < 768) {
+             document.getElementById('resultGrid').scrollIntoView({behavior: "smooth"});
+        }
+
+        try {
+            log(`Optimizing images to ${w}x${h}...`);
+            let payload = [];
+
+            for (let i = 1; i <= 5; i++) {
+                const f = document.getElementById(`file${i}`);
+                if (f.files[0]) {
+                    let b64 = await processAndResizeInput(f.files[0], w, h);
+                    payload.push(b64);
+                }
+            }
+
+            log("Sending to WaveSpeed...");
+            
+            const resp = await fetch('https://api.wavespeed.ai/api/v3/bytedance/seedream-v4/edit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({
+                    "images": payload,
+                    "prompt": prompt,
+                    "height": h, "width": w,
+                    "enable_base64_output": false,
+                    "enable_sync_mode": false
+                })
+            });
+
+            const data = await resp.json();
+            const id = data.data?.id || data.id;
+
+            if (!id) throw new Error("No ID returned from API");
+            
+            log(`Task ID: ${id}`);
+            await pollResult(id, apiKey, w, h, loadingCard);
+
+        } catch (e) {
+            log(`Error: ${e.message}`);
+            loadingCard.remove();
+            resetBtn();
+        }
+    }
+
+    async function pollResult(id, key, w, h, card) {
+        let attempts = 0;
+        const check = async () => {
+            if (attempts++ > 100) {
+                card.innerHTML = `<div style="color:red">TIMEOUT</div>`;
+                resetBtn(); return;
+            }
+            try {
+                const r = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${id}/result`, {
+                    headers: { 'Authorization': `Bearer ${key}` }
+                });
+                const d = await r.json();
+                const status = (d.data?.status || d.status);
+
+                if (status === 'succeeded' || status === 'completed') {
+                    const imgs = d.data?.outputs || d.data?.images || d.outputs || d.images;
+                    if (imgs && imgs.length) {
+                        finalizeCard(card, imgs[0], w, h);
+                        log("Generation Complete!");
+                    } else {
+                        card.innerHTML = `<div style="color:red">ERROR</div>`;
+                    }
+                    resetBtn();
+                } else if (status === 'failed') {
+                    card.innerHTML = `<div style="color:red">FAILED</div>`;
+                    resetBtn();
+                } else {
+                    setTimeout(check, 2000);
+                }
+            } catch (e) { setTimeout(check, 2000); }
+        };
+        check();
+    }
+
+    function resetBtn() {
+        const btn = document.getElementById('generateBtn');
+        btn.disabled = false;
+        btn.innerHTML = `<span>⚡ Generate Image</span>`;
+    }
+
+    function finalizeCard(card, urlRaw, w, h) {
+        let url = typeof urlRaw === 'string' ? urlRaw : (urlRaw.url || urlRaw.image_url);
+        card.className = 'img-card';
+        card.innerHTML = `
+            <img src="${url}">
+            <div class="img-overlay">
+                <div class="view-btn">VIEW & DOWNLOAD</div>
+            </div>
+        `;
+        card.onclick = () => openModal(url, w, h);
+    }
+
+    // --- MODAL ACTIONS ---
+    const modal = document.getElementById('imageModal');
+    
+    function openModal(url, w, h) {
+        currentImageUrl = url; targetWidth = w; targetHeight = h;
+        const img = document.getElementById('modalImg');
+        img.src = url;
+        img.onload = () => {
+             document.getElementById('lblExactSize').innerText = `(${w}x${h})`;
+             document.getElementById('lblFullSize').innerText = `(${img.naturalWidth}x${img.naturalHeight})`;
+        }
+        modal.style.display = 'flex';
+    }
+    
+    function closeModal() { modal.style.display = 'none'; }
+    window.onclick = (e) => { if(e.target == modal) closeModal(); }
+
+    function downloadOriginal() {
+        const a = document.createElement('a'); a.href = currentImageUrl;
+        a.download = `wavespeed_ai_${Date.now()}.jpg`; document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    function downloadResized() {
+        const img = new Image(); img.crossOrigin = "anonymous";
+        img.onload = () => {
+            const c = document.createElement('canvas'); c.width = targetWidth; c.height = targetHeight;
+            c.getContext('2d').drawImage(img,0,0,targetWidth,targetHeight);
+            const a = document.createElement('a'); a.href = c.toDataURL('image/jpeg', 0.95);
+            a.download = `wavespeed_crop_${targetWidth}x${targetHeight}.jpg`;
+            document.body.appendChild(a); a.click(); a.remove();
+        };
+        img.src = currentImageUrl;
+    }
+</script>
+
+</body>
+</html>
